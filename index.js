@@ -1,65 +1,85 @@
 const express = require("express");
 const axios = require("axios");
-require("dotenv").config();
+const {
+  handleAnalysis,
+  handleNews,
+  handleBEI,
+  handleBroksum,
+} = require("./commands");
 
-// Validasi environment variable
-if (!process.env.TELEGRAM_BOT_TOKEN) {
-  console.error("❌ BOT_TOKEN belum disetel di environment!");
+if (!process.env.BOT_TOKEN) {
+  console.error("❌ BOT_TOKEN belum disetel!");
   process.exit(1);
 }
 
 const app = express();
-const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const BOT_TOKEN = process.env.BOT_TOKEN;
 const TELEGRAM_API = `https://api.telegram.org/bot${BOT_TOKEN}`;
 
-// Middleware
 app.use(express.json({ limit: "10mb" }));
 
-// Health check
-app.get("/", (req, res) => {
-  res.send("✅ Telegram bot webhook aktif!");
-});
+// 🔁 Pemetaan perintah ke fungsi (dengan alias)
+const commandMap = {
+  // Semua ini memanggil handleAnalysis
+  analisa: handleAnalysis,
+  analisis: handleAnalysis,
+  analysist: handleAnalysis,
 
-// Webhook Telegram
+  // Memanggil handleNews
+  berita: handleNews,
+
+  // Memanggil handleBEI
+  bei: handleBEI,
+
+  //memanggil handleBroksum
+  broksum: handleBroksum,
+};
+
+// Helper: ekstrak command dan argumen
+function parseCommand(text) {
+  if (!text.startsWith("/")) return null;
+  const match = text.match(/^\/(\w+)(?:@(\w+))?(?:\s+(.*))?$/);
+  if (!match) return null;
+  const [, cmd, botUsername, args = ""] = match;
+  return { command: cmd.toLowerCase(), args: args.trim() };
+}
+
 app.post("/webhook", async (req, res) => {
   const update = req.body;
-
-  // Log update untuk debugging
-  console.log("📩 Update diterima:", JSON.stringify(update, null, 2));
-
-  // Pastikan ada pesan teks
-  if (update.message && update.message.text) {
+  if (update.message?.text) {
     const chatId = update.message.chat.id;
-    const text = update.message.text.trim();
+    const text = update.message.text;
+    const parsed = parseCommand(text);
 
-    // Proses pesan (contoh: echo)
-    const replyText = `Anda mengirim: "${text}"\n\nPesan ini diproses oleh bot Anda di Railway. 🚀`;
+    let replyText =
+      "❓ Perintah tidak dikenali. Coba: /analisa [saham], /berita [topik], /bei [kode]";
 
-    try {
-      await axios.post(`${TELEGRAM_API}/sendMessage`, {
+    if (parsed) {
+      const { command, args } = parsed;
+      const handler = commandMap[command];
+
+      if (handler) {
+        try {
+          replyText = await handler(chatId, args);
+        } catch (err) {
+          console.error(`Error di /${command}:`, err);
+          replyText = "⚠️ Gagal memproses permintaan.";
+        }
+      }
+    }
+
+    // Kirim balasan
+    await axios
+      .post(`${TELEGRAM_API}/sendMessage`, {
         chat_id: chatId,
         text: replyText,
-      });
-      console.log(`✅ Balasan terkirim ke ${chatId}`);
-    } catch (error) {
-      console.error(
-        "❌ Gagal kirim balasan:",
-        error.response?.data || error.message
-      );
-    }
+      })
+      .catch(console.error);
   }
 
-  // Telegram butuh respons cepat (200 OK)
   res.status(200).end();
 });
 
-// Handle 404
-app.use((req, res) => {
-  console.log("⚠️ 404 - Path tidak ditemukan:", req.method, req.originalUrl);
-  res.status(404).json({ error: "Endpoint not found" });
-});
-
-// Jalankan server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`🚀 Server berjalan di port ${PORT}`);
