@@ -2,6 +2,7 @@ const express = require("express");
 const axios = require("axios");
 const { handleAnalysis } = require("./commands");
 const FormData = require("form-data");
+require("dotenv").config();
 
 if (!process.env.BOT_TOKEN) {
   console.error("❌ BOT_TOKEN belum disetel!");

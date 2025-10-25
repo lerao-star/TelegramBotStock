@@ -1,27 +1,26 @@
 // chartService.js
-const puppeteer = require("puppeteer");
+const puppeteer = require("puppeteer-core");
+const chromium = require("@sparticuz/chromium");
 const yahooFinance = require("yahoo-finance2").default;
 const technicalIndicators = require("technicalindicators");
 
 async function generateCandlestickChart(symbol = "BBCA.JK") {
+  // Jalankan browser dengan @sparticuz/chromium
   const browser = await puppeteer.launch({
-    executablePath: "/usr/bin/chromium-browser",
+    args: chromium.args,
+    defaultViewport: chromium.defaultViewport,
+    executablePath: await chromium.executablePath(),
     headless: true,
-    args: [
-      "--no-sandbox",
-      "--disable-setuid-sandbox",
-      "--disable-dev-shm-usage",
-      "--disable-gpu",
-    ],
+    ignoreHTTPSErrors: true,
   });
 
   const page = await browser.newPage();
-  const filePath = require("path").resolve(__dirname, "public/chart.html");
+  const filePath = require("path").resolve(__dirname, "../public/chart.html");
 
   try {
     await page.goto(`file://${filePath}`, { waitUntil: "networkidle2" });
 
-    // Ambil data
+    // Ambil data dari Yahoo Finance
     const quote = await yahooFinance.quote(symbol);
     const chart = await yahooFinance.chart(symbol, {
       range: "3mo",
@@ -42,7 +41,7 @@ async function generateCandlestickChart(symbol = "BBCA.JK") {
     const closes = ohlc.map((d) => d.close);
     const volumes = ohlc.map((d) => d.volume);
 
-    // Hitung semua indikator
+    // Hitung indikator
     const ma5 = technicalIndicators.SMA.calculate({
       period: 5,
       values: closes,
@@ -67,7 +66,7 @@ async function generateCandlestickChart(symbol = "BBCA.JK") {
       period: 14,
     });
 
-    // Deteksi cross
+    // Deteksi Golden/Dead Cross
     const crosses = [];
     for (let i = 1; i < ma5.length; i++) {
       if (ma5[i - 1] < ma20[i - 1] && ma5[i] > ma20[i]) {
@@ -88,11 +87,11 @@ async function generateCandlestickChart(symbol = "BBCA.JK") {
       S2: min + range * 0.5,
     };
 
-    // Kirim data ke halaman
+    // Kirim data ke halaman HTML
     await page.evaluate(
       (data) => {
         window.chartData = data;
-        window.renderChart();
+        window.renderChart?.();
       },
       {
         symbol: quote.symbol,
@@ -120,7 +119,6 @@ async function generateCandlestickChart(symbol = "BBCA.JK") {
     await browser.close();
     return screenshot;
   } catch (err) {
-    console.error("Error:", err);
     await browser.close();
     throw err;
   }
