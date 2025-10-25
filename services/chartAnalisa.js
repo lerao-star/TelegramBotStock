@@ -1,25 +1,30 @@
+// chartService.js
 const puppeteer = require("puppeteer-core");
 const chromium = require("@sparticuz/chromium");
 const yahooFinance = require("yahoo-finance2").default;
 const technicalIndicators = require("technicalindicators");
-const path = require("path");
 
 async function generateCandlestickChart(symbol = "BBCA.JK") {
-  const executablePath =
-    (await chromium.executablePath()) ||
-    "/usr/bin/chromium-browser" ||
-    "/usr/bin/google-chrome-stable";
-
+  // Jalankan browser dengan @sparticuz/chromium
   const browser = await puppeteer.launch({
-    args: [...chromium.args, "--no-sandbox", "--disable-setuid-sandbox"],
+    args: [
+      ...chromium.args,
+      "--disable-gpu",
+      "--single-process",
+      "--no-zygote",
+      "--disable-dev-shm-usage",
+    ],
     defaultViewport: chromium.defaultViewport,
-    executablePath,
-    headless: chromium.headless,
+    executablePath: await chromium.executablePath({
+      // Gunakan versi yang sudah bundle semua library
+      cacheDirectory: "/tmp", // Railway hanya izinkan write ke /tmp
+    }),
+    headless: true,
     ignoreHTTPSErrors: true,
   });
 
   const page = await browser.newPage();
-  const filePath = path.resolve(__dirname, "../public/chart.html");
+  const filePath = require("path").resolve(__dirname, "public/chart.html");
 
   try {
     await page.goto(`file://${filePath}`, { waitUntil: "networkidle2" });
@@ -45,7 +50,7 @@ async function generateCandlestickChart(symbol = "BBCA.JK") {
     const closes = ohlc.map((d) => d.close);
     const volumes = ohlc.map((d) => d.volume);
 
-    // Indikator teknikal
+    // Hitung indikator
     const ma5 = technicalIndicators.SMA.calculate({
       period: 5,
       values: closes,
@@ -80,7 +85,7 @@ async function generateCandlestickChart(symbol = "BBCA.JK") {
       }
     }
 
-    // Support / Resistance sederhana
+    // Support/Resistance
     const max = Math.max(...closes);
     const min = Math.min(...closes);
     const range = max - min;
@@ -91,7 +96,7 @@ async function generateCandlestickChart(symbol = "BBCA.JK") {
       S2: min + range * 0.5,
     };
 
-    // Kirim data ke halaman HTML untuk digambar
+    // Kirim data ke halaman HTML
     await page.evaluate(
       (data) => {
         window.chartData = data;
@@ -118,14 +123,11 @@ async function generateCandlestickChart(symbol = "BBCA.JK") {
       }
     );
 
-    // Tunggu render chart, lalu screenshot
     await page.waitForTimeout(2500);
     const screenshot = await page.screenshot({ type: "png" });
-
     await browser.close();
     return screenshot;
   } catch (err) {
-    console.error("❌ Gagal kirim chart:", err);
     await browser.close();
     throw err;
   }
