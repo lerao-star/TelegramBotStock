@@ -1,22 +1,23 @@
 const puppeteer = require("puppeteer-core");
-const chromium = require("@sparticuz/chromium");
+const { executablePath } = require("@sparticuz/chromium");
 const yahooFinance = require("yahoo-finance2").default;
 const technicalIndicators = require("technicalindicators");
 
 async function generateCandlestickChart(symbol = "BBCA.JK") {
-  console.log(
-    "🚀 Meluncurkan browser dengan @sparticuz/chromium (brotli: false)..."
-  );
-
-  const executablePath = await chromium.executablePath({
-    cacheDirectory: "/tmp",
-    brotli: false, // Hindari error Brotli di Railway
-  });
+  console.log("🚀 Meluncurkan browser dengan @sparticuz/chromium v141...");
 
   const browser = await puppeteer.launch({
-    args: chromium.args,
-    defaultViewport: chromium.defaultViewport,
-    executablePath: executablePath,
+    args: [
+      "--disable-gpu",
+      "--single-process",
+      "--no-zygote",
+      "--disable-dev-shm-usage",
+      "--disable-software-rasterizer",
+    ],
+    executablePath: await executablePath({
+      cacheDirectory: "/tmp",
+      // brotli: false, // opsional — coba tanpa dulu
+    }),
     headless: true,
     ignoreHTTPSErrors: true,
   });
