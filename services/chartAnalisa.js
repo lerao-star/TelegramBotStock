@@ -5,6 +5,7 @@ const technicalIndicators = require("technicalindicators");
 
 async function generateCandlestickChart(symbol = "BBCA.JK") {
   const browser = await puppeteer.launch({
+    executablePath: "/usr/bin/chromium-browser",
     headless: true,
     args: [
       "--no-sandbox",
