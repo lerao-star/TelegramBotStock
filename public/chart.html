@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Stock Chart</title>
+  <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+  <style>
+    body { margin: 0; padding: 0; background: white; font-family: Arial, sans-serif; overflow: hidden; }
+    #container { position: relative; width: 1000px; height: 1200px; margin: 0 auto; }
+    .info-box {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      background: rgba(0,0,0,0.7);
+      color: white;
+      padding: 10px;
+      border-radius: 5px;
+      font-size: 12px;
+      z-index: 10;
+    }
+  </style>
+</head>
+<body>
+  <div id="container"></div>
+  <div class="info-box" id="info-box">Loading...</div>
+
+  <script>
+    const container = document.getElementById('container');
+    const infoBox = document.getElementById('info-box');
+
+    function renderChart() {
+      const data = window.chartData;
+
+      // Buat chart utama (harga)
+      const mainChart = LightweightCharts.createChart(container, {
+        width: 1000,
+        height: 500,
+        layout: { backgroundColor: '#ffffff', textColor: '#333' },
+        grid: { vertLines: { color: '#eee' }, horzLines: { color: '#eee' } },
+        crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+        rightPriceScale: { borderColor: '#ddd' },
+        timeScale: { borderColor: '#ddd', timeVisible: true }
+      });
+
+      // Candlestick
+      const candleSeries = mainChart.addCandlestickSeries({
+        upColor: '#26a69a',
+        downColor: '#ef5350',
+        borderUpColor: '#26a69a',
+        borderDownColor: '#ef5350',
+        wickUpColor: '#26a69a',
+        wickDownColor: '#ef5350'
+      });
+
+      // MA5 & MA20
+      const ma5Series = mainChart.addLineSeries({ color: 'orange', lineWidth: 1.5 });
+      const ma20Series = mainChart.addLineSeries({ color: 'green', lineWidth: 1.5 });
+
+      // Bollinger Bands
+      const bbUpperSeries = mainChart.addLineSeries({ color: '#9c27b0', lineWidth: 1 });
+      const bbLowerSeries = mainChart.addLineSeries({ color: '#9c27b0', lineWidth: 1 });
+
+      // Format data
+      const timeLabels = data.ohlc.map(d => d.time);
+      const candleData = data.ohlc.map(d => ({
+        time: d.time,
+        open: d.open,
+        high: d.high,
+        low: d.low,
+        close: d.close
+      }));
+      const ma5Data = data.ma5.map((v, i) => ({ time: timeLabels[i], value: v }));
+      const ma20Data = data.ma20.map((v, i) => ({ time: timeLabels[i], value: v }));
+      const bbUpperData = data.bbUpper.map((v, i) => ({ time: timeLabels[i], value: v }));
+      const bbLowerData = data.bbLower.map((v, i) => ({ time: timeLabels[i], value: v }));
+
+      // Set data
+      candleSeries.setData(candleData);
+      ma5Series.setData(ma5Data);
+      ma20Series.setData(ma20Data);
+      bbUpperSeries.setData(bbUpperData);
+      bbLowerSeries.setData(bbLowerData);
+
+      // Tambahkan cross labels
+      data.crosses.forEach(cross => {
+        candleSeries.createPriceLine({
+          price: cross.price,
+          color: cross.type === 'Golden Cross' ? 'green' : 'red',
+          lineWidth: 1,
+          lineStyle: LightweightCharts.LineStyle.Dotted,
+          title: cross.type
+        });
+      });
+
+      // --- MACD Chart ---
+      const macdChart = LightweightCharts.createChart(container, {
+        width: 1000,
+        height: 200,
+        layout: { backgroundColor: '#ffffff' },
+        grid: { vertLines: { color: '#eee' }, horzLines: { color: '#eee' } },
+        rightPriceScale: { borderColor: '#ddd' },
+        timeScale: { visible: false }
+      });
+      macdChart.timeScale().setVisibleRange({
+        from: timeLabels[0],
+        to: timeLabels[timeLabels.length - 1]
+      });
+
+      const macdSeries = macdChart.addLineSeries({ color: 'blue', lineWidth: 1 });
+      const signalSeries = macdChart.addLineSeries({ color: 'orange', lineWidth: 1 });
+      const histogramSeries = macdChart.addHistogramSeries({
+        color: 'rgba(0,150,136,0.6)',
+        priceFormat: { type: 'volume' }
+      });
+
+      const macdData = data.macd.map((v, i) => ({ time: timeLabels[i], value: v }));
+      const signalData = data.signal.map((v, i) => ({ time: timeLabels[i], value: v }));
+      const histogramData = data.histogram.map((v, i) => ({
+        time: timeLabels[i],
+        value: v,
+        color: v >= 0 ? 'green' : 'red'
+      }));
+
+      macdSeries.setData(macdData);
+      signalSeries.setData(signalData);
+      histogramSeries.setData(histogramData);
+
+      // --- RSI Chart ---
+      const rsiChart = LightweightCharts.createChart(container, {
+        width: 1000,
+        height: 200,
+        layout: { backgroundColor: '#ffffff' },
+        grid: { vertLines: { color: '#eee' }, horzLines: { color: '#eee' } },
+        rightPriceScale: { borderColor: '#ddd' },
+        timeScale: { visible: false }
+      });
+      rsiChart.timeScale().setVisibleRange({
+        from: timeLabels[0],
+        to: timeLabels[timeLabels.length - 1]
+      });
+
+      const rsiSeries = rsiChart.addLineSeries({ color: 'blue', lineWidth: 1 });
+      const rsiData = data.rsi.map((v, i) => ({ time: timeLabels[i], value: v }));
+      rsiSeries.setData(rsiData);
+
+      // Garis overbought/oversold
+      rsiSeries.createPriceLine({ price: 70, color: 'red', lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Dashed, title: '70' });
+      rsiSeries.createPriceLine({ price: 30, color: 'green', lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Dashed, title: '30' });
+
+      // --- Volume Chart ---
+      const volumeChart = LightweightCharts.createChart(container, {
+        width: 1000,
+        height: 200,
+        layout: { backgroundColor: '#ffffff' },
+        grid: { vertLines: { color: '#eee' }, horzLines: { color: '#eee' } },
+        rightPriceScale: { borderColor: '#ddd' },
+        timeScale: { borderColor: '#ddd', timeVisible: true }
+      });
+      volumeChart.timeScale().setVisibleRange({
+        from: timeLabels[0],
+        to: timeLabels[timeLabels.length - 1]
+      });
+
+      const volumeSeries = volumeChart.addHistogramSeries({
+        color: 'rgba(0,150,136,0.6)',
+        priceFormat: { type: 'volume' }
+      });
+      const volumeData = data.volume.map((v, i) => ({
+        time: timeLabels[i],
+        value: v,
+        color: data.ohlc[i].close >= data.ohlc[i].open ? '#26a69a' : '#ef5350'
+      }));
+      volumeSeries.setData(volumeData);
+
+      // Update info box
+      infoBox.innerHTML = `
+        <strong>Analisis Teknikal ${data.symbol}</strong><br>
+        Close: Rp${data.price.toLocaleString()}<br><br>
+        <span style="color:red">Resistance:</span><br>
+        R1: Rp${data.supportResistance.R1.toFixed(0)}<br>
+        R2: Rp${data.supportResistance.R2.toFixed(0)}<br><br>
+        <span style="color:green">Support:</span><br>
+        S1: Rp${data.supportResistance.S1.toFixed(0)}<br>
+        S2: Rp${data.supportResistance.S2.toFixed(0)}
+      `;
+    }
+
+    // Panggil renderChart setelah data siap
+    if (window.chartData) {
+      renderChart();
+    }
+  </script>
+</body>
+</html>
