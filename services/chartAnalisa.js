@@ -10,9 +10,17 @@ async function generateCandlestickChart(symbol = "BBCA.JK") {
   );
 
   const browser = await puppeteer.launch({
-    args: chromium.args,
-    executablePath: await chromium.executablePath(),
-    headless: chromium.headless,
+    args: [
+      "--no-sandbox",
+      "--disable-setuid-sandbox",
+      "--disable-dev-shm-usage",
+      "--disable-accelerated-2d-canvas",
+      "--disable-gpu",
+      "--lang=en-US,en",
+    ],
+    executablePath:
+      process.env.CHROMIUM_PATH || (await chromium.executablePath()),
+    headless: true,
     ignoreHTTPSErrors: true,
   });
 
