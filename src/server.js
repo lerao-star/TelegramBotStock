@@ -1,26 +1,29 @@
-import express from 'express';
-import { Telegraf } from 'telegraf';
-import { createBullBoard } from '@bull-board/api';
-import { BullAdapter } from '@bull-board/api/bullAdapter.js';
-import { ExpressAdapter } from '@bull-board/express';
-import Queue from 'bull';
-import { analisaJob } from './jobs/analisaJob.js';
-import { bot } from './bot.js';
+import express from "express";
+import { Telegraf } from "telegraf";
+import { createBullBoard } from "@bull-board/api";
+import { BullAdapter } from "@bull-board/api"; // Perbaikan 1
+import { ExpressAdapter } from "@bull-board/express"; // Perbaikan 2 (jika sebelumnya salah)
+import Queue from "bull";
+import { analisaJob } from "./jobs/analisaJob.js";
+import { bot } from "./bot.js"; // Pastikan ekstensi .js ada
 
 const app = express();
-const analisaQueue = new Queue('Analisis', process.env.REDIS_URL || 'redis://127.0.0.1:6379');
+const analisaQueue = new Queue(
+  "Analisis",
+  process.env.REDIS_URL || "redis://127.0.0.1:6379"
+);
 
 // Setup Bull Board (opsional, untuk melihat antrian)
 const serverAdapter = new ExpressAdapter();
 createBullBoard({
-  queues: [new BullAdapter(analisaQueue)],
+  queues: [new BullAdapter(analisaQueue)], // Gunakan BullAdapter langsung
   serverAdapter: serverAdapter,
 });
 
-app.use('/admin/queues', serverAdapter.getRouter());
+app.use("/admin/queues", serverAdapter.getRouter());
 
-app.get('/', (req, res) => {
-  res.send('Bot is running!');
+app.get("/", (req, res) => {
+  res.send("Bot is running!");
 });
 
 // Webhook handler
