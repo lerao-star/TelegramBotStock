@@ -1,35 +1,37 @@
 import puppeteer from "puppeteer";
 import fs from "fs/promises";
+import { Telegraf } from "telegraf";
 
-export async function analisaJob(job) {
+export async function analisaJobProcessor(job, done) {
+  // Terima job dan done callback
   const { kodeSaham, chatId } = job.data;
 
-  // Simulasi update progress
-  await job.progress(10);
-  // TODO: Kirim update ke bot bahwa sedang membuka browser
+  // Catatan: bull v4 TIDAK memiliki job.updateProgress() bawaan
+  // Kita akan bahas progress nanti.
+  // console.log("Progress: 10%"); // Simulasi update progress
 
   const browser = await puppeteer.launch({ headless: true });
   const page = await browser.newPage();
 
-  // TODO: Ganti URL dengan sumber data teknikal yang valid (misalnya TradingView, Yahoo Finance, dll)
+  // TODO: Ganti URL dengan sumber data teknikal yang valid
   await page.goto(`https://www.tradingview.com/chart/?symbol=${kodeSaham}`, {
     waitUntil: "networkidle2",
   });
 
-  await job.progress(50);
+  // console.log("Progress: 50%"); // Simulasi update progress
 
-  // TODO: Ambil data teknikal: MA5, MA20, MACD, Volume, Support, Resist
-  // Contoh: screenshot chart
   const screenshotPath = `/tmp/${kodeSaham}_chart.png`;
   await page.screenshot({ path: screenshotPath, fullPage: false });
 
-  await job.progress(90);
+  // console.log("Progress: 90%"); // Simulasi update progress
 
-  // Kirim gambar ke Telegram
+  const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
   await bot.telegram.sendPhoto(chatId, { source: screenshotPath });
-
-  await job.progress(100);
 
   await browser.close();
   await fs.unlink(screenshotPath); // Hapus file sementara
+
+  // Panggil callback 'done' untuk menandai job selesai
+  // done(error, result) -> jika tidak ada error, kirim null
+  done(null, { status: "completed", path: screenshotPath });
 }

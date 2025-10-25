@@ -1,7 +1,9 @@
 import { Telegraf } from "telegraf";
-import Queue from "bull";
+import Queue from "bull"; // Import default dari bull v4
 
 const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
+
+// Buat instance Queue untuk digunakan di bot
 const analisaQueue = new Queue(
   "Analisis",
   process.env.REDIS_URL || "redis://127.0.0.1:6379"
@@ -28,7 +30,6 @@ bot.command("analisa", async (ctx) => {
     { attempts: 1, backoff: 5000 }
   );
 
-  // Kirim pesan awal ke pengguna
   await ctx.reply(
     `Permintaan analisis untuk ${kodeSaham} diterima. ID: ${job.id}. Sedang memproses...`
   );
