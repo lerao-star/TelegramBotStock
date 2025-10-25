@@ -86,7 +86,7 @@ bot.start((ctx) => {
 🤖 Bot Saham Indonesia
 
 Perintah:
-• /analisis <kode> → Chart + indikator
+• /analisis <kode> \\→ Chart + indikator
 `;
   return ctx.reply(helpMsg, { parse_mode: "MarkdownV2" });
 });
