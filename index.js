@@ -1,62 +1,64 @@
-require('dotenv').config();
-const express = require('express');
-const axios = require('axios');
-
-const PORT = process.env.PORT || 3000;
-const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-
-if (!BOT_TOKEN) {
-  console.warn('Warning: TELEGRAM_BOT_TOKEN is not set. Set it in environment before using bot features.');
-}
-
-const TELEGRAM_API = BOT_TOKEN ? `https://api.telegram.org/bot${BOT_TOKEN}` : null;
-
+const express = require("express");
+const axios = require("axios");
 const app = express();
+
+// Ganti dengan token bot Anda dari @BotFather
+const BOT_TOKEN = process.env.BOT_TOKEN;
+const TELEGRAM_API = `https://api.telegram.org/bot${BOT_TOKEN}`;
+const WEBHOOK_URL = "/webhook"; // endpoint webhook
+
+// Middleware untuk parsing JSON
 app.use(express.json());
 
-app.get('/', (req, res) => {
-  res.send('Telegram webhook server running');
-});
+// Endpoint webhook Telegram
+app.post(WEBHOOK_URL, async (req, res) => {
+  const update = req.body;
 
-// Telegram will POST updates to /webhook
-app.post('/webhook', async (req, res) => {
-  try {
-    const update = req.body;
-    const message = update && (update.message || update.edited_message || update.callback_query && update.callback_query.message);
+  // Pastikan update berisi pesan teks
+  if (update.message && update.message.text) {
+    const chatId = update.message.chat.id;
+    const text = update.message.text.trim();
 
-    if (!message || !message.text) {
-      // nothing to do, but respond 200 to acknowledge
-      return res.status(200).send('no-text');
-    }
+    // ✨ Proses pesan di sini
+    console.log(`Menerima pesan dari ${chatId}: "${text}"`);
 
-    const chatId = message.chat && message.chat.id;
-    const text = (message.text || '').trim();
+    // Contoh: balas dengan pesan yang diolah
+    const replyText = `Anda mengirim: "${text}". Pesan ini telah diproses!`;
 
-    // Extract words (basic): take sequences of non-space characters, then clean punctuation
-    const rawWords = text.match(/\b[^\s]+\b/g) || [];
-    const cleanWords = rawWords.map(w => w.replace(/[^\p{L}\p{N}_]+/gu, '')).filter(Boolean);
-
-    const wordCount = cleanWords.length;
-    const reversedWords = cleanWords.map(w => w.split('').reverse().join('')).join(' ');
-
-    const reply = `Kamu mengirim: ${text}\nKata: ${cleanWords.join(', ')}\nJumlah kata: ${wordCount}\nKata terbalik: ${reversedWords}`;
-
-    if (TELEGRAM_API && chatId) {
+    try {
+      // Kirim balasan ke Telegram
       await axios.post(`${TELEGRAM_API}/sendMessage`, {
         chat_id: chatId,
-        text: reply
+        text: replyText,
       });
-    } else {
-      console.log('Would send reply:', reply);
+    } catch (error) {
+      console.error("Gagal mengirim balasan:", error.message);
     }
+  }
 
-    return res.status(200).send('ok');
-  } catch (err) {
-    console.error('Error handling webhook:', err?.response?.data || err.message || err);
-    return res.status(500).send('error');
+  // Telegram perlu respons cepat (200 OK)
+  res.status(200).end();
+});
+
+// Endpoint untuk mengatur webhook (opsional, bisa juga via curl)
+app.get("/setwebhook", async (req, res) => {
+  const url = `https://your-domain.com${WEBHOOK_URL}`; // Ganti dengan URL publik Anda
+  try {
+    const response = await axios.get(
+      `${TELEGRAM_API}/setWebhook?url=${encodeURIComponent(url)}`
+    );
+    res.json(response.data);
+  } catch (error) {
+    res.status(500).send("Gagal mengatur webhook");
   }
 });
 
+// Health check
+app.get("/", (req, res) => {
+  res.send("Telegram Bot Webhook siap!");
+});
+
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Server listening on port ${PORT}`);
+  console.log(`Server berjalan di port ${PORT}`);
 });
