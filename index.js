@@ -3,7 +3,7 @@ const axios = require("axios");
 const app = express();
 
 // Ganti dengan token bot Anda dari @BotFather
-const BOT_TOKEN = process.env.BOT_TOKEN;
+const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_API = `https://api.telegram.org/bot${BOT_TOKEN}`;
 const WEBHOOK_URL = "/webhook"; // endpoint webhook
 
