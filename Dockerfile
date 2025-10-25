@@ -1,16 +1,21 @@
-FROM node:18-slim
+# Use official Node.js LTS image
+FROM node:18-alpine
 
-# Install dependencies for Puppeteer
-RUN apt-get update \
-    && apt-get install -y wget gnupg \
-    && wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
-    && sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list' \
-    && apt-get update \
-    && apt-get install -y google-chrome-stable
-
+# set working directory
 WORKDIR /app
+
+# copy package manifests
 COPY package*.json ./
-RUN npm install
+
+# install deps (prefer npm ci if lock exists, fallback to npm install)
+RUN npm ci --omit=dev || npm install --production
+
+# copy app source
 COPY . .
-EXPOSE $PORT
-CMD [ "npm", "start" ]
+
+# environment
+ENV PORT=3000
+EXPOSE 3000
+
+# start app
+CMD ["node", "index.js"]

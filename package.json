@@ -1,18 +1,17 @@
 {
-  "name": "telegram-analisa-bot",
-  "type": "module",
+  "name": "telegram-webhook-bot",
+  "version": "1.0.0",
+  "description": "Simple Telegram webhook bot with Express for Railway deployment",
+  "main": "index.js",
   "scripts": {
-    "start": "node src/server.js"
+    "start": "node index.js"
+  },
+  "engines": {
+    "node": ">=18"
   },
   "dependencies": {
-"telegraf": "^4.16.3",
-    "bull": "^4.16.5",
-    "@bull-board/api": "^4.12.2",
-    "@bull-board/express": "^4.12.2",
-    "puppeteer-core": "^24.26.1",
-    "@sparticuz/chromium": "^141.0.0",
-    "axios": "^1.6.0", 
-    "express": "^5.1.0",
-    "dotenv": "^16.0.0"
+    "axios": "^1.6.0",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2"
   }
 }
