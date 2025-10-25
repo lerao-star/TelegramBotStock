@@ -15,7 +15,10 @@ async function generateCandlestickChart(symbol = "BBCA.JK") {
       "--no-zygote",
       "--disable-dev-shm-usage",
     ],
-    executablePath: await executablePath({ cacheDirectory: "/tmp" }), // ✅
+    executablePath: await executablePath({
+      cacheDirectory: "/tmp",
+      brotli: false,
+    }), // ✅
     headless: true,
     ignoreHTTPSErrors: true,
   });
