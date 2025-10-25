@@ -8,6 +8,8 @@ if (!process.env.BOT_TOKEN) {
   process.exit(1);
 }
 
+const TELEGRAM_API = `https://api.telegram.org/bot${process.env.BOT_TOKEN}`;
+
 const app = express();
 app.use(express.json({ limit: "10mb" }));
 

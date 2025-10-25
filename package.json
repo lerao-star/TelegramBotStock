@@ -12,7 +12,7 @@
     "form-data": "^4.0.4",
     "puppeteer": "^22.15.0",
     "technicalindicators": "^1.1.13",
-    "yahoo-finance2": "^1.14.8"
+    "yahoo-finance2": "^3.10.0"
   },
   "engines": {
     "node": ">=18"
