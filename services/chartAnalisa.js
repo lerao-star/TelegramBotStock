@@ -4,20 +4,18 @@ const yahooFinance = require("yahoo-finance2").default;
 const technicalIndicators = require("technicalindicators");
 
 async function generateCandlestickChart(symbol = "BBCA.JK") {
-  console.log("🚀 Meluncurkan browser dengan @sparticuz/chromium v141...");
+  console.log(`🚀 Memulai chart untuk ${symbol}...`);
 
   const browser = await puppeteer.launch({
     args: [
+      "--no-sandbox",
+      "--disable-setuid-sandbox",
       "--disable-gpu",
       "--single-process",
       "--no-zygote",
       "--disable-dev-shm-usage",
-      "--disable-software-rasterizer",
     ],
-    executablePath: await executablePath({
-      cacheDirectory: "/tmp",
-      // brotli: false, // opsional — coba tanpa dulu
-    }),
+    executablePath: await executablePath({ cacheDirectory: "/tmp" }), // ✅
     headless: true,
     ignoreHTTPSErrors: true,
   });
