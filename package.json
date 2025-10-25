@@ -1,0 +1,15 @@
+{
+  "name": "telegram-analisa-bot",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js"
+  },
+  "dependencies": {
+    "bull": "^4.16.5",
+    "express": "^5.1.0",
+    "node-telegram-bot-api": "^0.66.0",
+    "puppeteer": "^24.26.1",
+    "redis": "^5.9.0",
+    "telegraf": "^4.16.3"
+  }
+}
