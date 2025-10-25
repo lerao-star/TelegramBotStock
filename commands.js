@@ -1,5 +1,5 @@
 const axios = require("axios");
-const { generateStockChart } = require("./services/chartAnalisa");
+const { generateCandlestickChart } = require("./services/chartAnalisa");
 
 const TELEGRAM_API = `https://api.telegram.org/bot${process.env.BOT_TOKEN}`;
 
