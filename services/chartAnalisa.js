@@ -1,30 +1,33 @@
 const puppeteer = require("puppeteer-core");
-const { executablePath } = require("@sparticuz/chromium");
+const chromium = require("@sparticuz/chromium");
 const yahooFinance = require("yahoo-finance2").default;
 const technicalIndicators = require("technicalindicators");
+const path = require("path");
 
 async function generateCandlestickChart(symbol = "BBCA.JK") {
-  console.log(`🚀 Memulai chart untuk ${symbol}...`);
+  console.log(
+    "🚀 Meluncurkan browser dengan @sparticuz/chromium v141 di Railway..."
+  );
+
+  const executablePath = await chromium.executablePath();
 
   const browser = await puppeteer.launch({
     args: [
+      ...chromium.args,
       "--no-sandbox",
       "--disable-setuid-sandbox",
       "--disable-gpu",
       "--single-process",
       "--no-zygote",
-      "--disable-dev-shm-usage",
     ],
-    executablePath: await executablePath({
-      cacheDirectory: "/tmp",
-      brotli: false,
-    }), // ✅
-    headless: true,
+    defaultViewport: chromium.defaultViewport,
+    executablePath,
+    headless: chromium.headless,
     ignoreHTTPSErrors: true,
   });
 
   const page = await browser.newPage();
-  const filePath = require("path").resolve(__dirname, "public/chart.html");
+  const filePath = path.resolve(__dirname, "public/chart.html");
 
   try {
     await page.goto(`file://${filePath}`, { waitUntil: "networkidle2" });
@@ -50,7 +53,7 @@ async function generateCandlestickChart(symbol = "BBCA.JK") {
     const closes = ohlc.map((d) => d.close);
     const volumes = ohlc.map((d) => d.volume);
 
-    // Hitung indikator
+    // Indikator teknikal
     const ma5 = technicalIndicators.SMA.calculate({
       period: 5,
       values: closes,
@@ -59,23 +62,8 @@ async function generateCandlestickChart(symbol = "BBCA.JK") {
       period: 20,
       values: closes,
     });
-    const bb = technicalIndicators.BollingerBands.calculate({
-      values: closes,
-      period: 20,
-      stdDev: 2,
-    });
-    const macdOutput = technicalIndicators.MACD.calculate({
-      values: closes,
-      fastPeriod: 12,
-      slowPeriod: 26,
-      signalPeriod: 9,
-    });
-    const rsi = technicalIndicators.RSI.calculate({
-      values: closes,
-      period: 14,
-    });
 
-    // Deteksi Golden/Dead Cross
+    // Deteksi golden/dead cross
     const crosses = [];
     for (let i = 1; i < ma5.length; i++) {
       if (ma5[i - 1] < ma20[i - 1] && ma5[i] > ma20[i]) {
@@ -85,7 +73,7 @@ async function generateCandlestickChart(symbol = "BBCA.JK") {
       }
     }
 
-    // Support/Resistance
+    // Support / resistance
     const max = Math.max(...closes);
     const min = Math.min(...closes);
     const range = max - min;
@@ -96,31 +84,12 @@ async function generateCandlestickChart(symbol = "BBCA.JK") {
       S2: min + range * 0.5,
     };
 
-    // Kirim data ke halaman HTML
     await page.evaluate(
       (data) => {
         window.chartData = data;
         window.renderChart?.();
       },
-      {
-        symbol: quote.symbol,
-        price: quote.regularMarketPrice,
-        ohlc,
-        ma5: technicalIndicators.padStart(ma5, closes.length),
-        ma20: technicalIndicators.padStart(ma20, closes.length),
-        bbUpper: technicalIndicators.padStart(bb.upper, closes.length),
-        bbLower: technicalIndicators.padStart(bb.lower, closes.length),
-        macd: technicalIndicators.padStart(macdOutput.MACD, closes.length),
-        signal: technicalIndicators.padStart(macdOutput.signal, closes.length),
-        histogram: technicalIndicators.padStart(
-          macdOutput.histogram,
-          closes.length
-        ),
-        rsi: technicalIndicators.padStart(rsi, closes.length),
-        volume: volumes,
-        crosses,
-        supportResistance: sr,
-      }
+      { symbol: quote.symbol, ohlc, ma5, ma20, crosses, supportResistance: sr }
     );
 
     await page.waitForTimeout(2500);
@@ -128,6 +97,7 @@ async function generateCandlestickChart(symbol = "BBCA.JK") {
     await browser.close();
     return screenshot;
   } catch (err) {
+    console.error("❌ Error di generateCandlestickChart:", err);
     await browser.close();
     throw err;
   }
