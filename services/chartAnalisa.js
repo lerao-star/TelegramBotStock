@@ -1,5 +1,5 @@
 const puppeteer = require("puppeteer-core");
-const chromium = require("@sparticuz/chromium");
+const chromium = require("@sparticuz/chromium-min");
 const yahooFinance = require("yahoo-finance2").default;
 const technicalIndicators = require("technicalindicators");
 const path = require("path");
@@ -9,19 +9,9 @@ async function generateCandlestickChart(symbol = "BBCA.JK") {
     "🚀 Meluncurkan browser dengan @sparticuz/chromium v141 di Railway..."
   );
 
-  const executablePath = await chromium.executablePath();
-
   const browser = await puppeteer.launch({
-    args: [
-      ...chromium.args,
-      "--no-sandbox",
-      "--disable-setuid-sandbox",
-      "--disable-gpu",
-      "--single-process",
-      "--no-zygote",
-    ],
-    defaultViewport: chromium.defaultViewport,
-    executablePath,
+    args: chromium.args,
+    executablePath: await chromium.executablePath(),
     headless: chromium.headless,
     ignoreHTTPSErrors: true,
   });
