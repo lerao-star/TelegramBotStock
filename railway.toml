@@ -1,23 +1,8 @@
-# 📦 Railway Configuration for Telegram Stock Bot
-# by ChatGPT (Optimized for Puppeteer + Chromium + Express)
-
 [build]
-# 1️⃣ Pastikan dependencies Chromium & Puppeteer diunduh
-#    (biar gak error "The input directory does not exist")
 command = "npm install && npx @sparticuz/chromium --download"
 
 [deploy]
-# 2️⃣ Jalankan script start di package.json
 startCommand = "npm start"
 
-# 3️⃣ Railway otomatis expose PORT dari env
-restartPolicyType = "on_failure"
-healthcheckPath = "/"
-healthcheckTimeout = 10
-
-[variables]
-# 4️⃣ Tambahkan variable environment default
-NODE_ENV = "production"
-PORT = "3000"
-
-# ⚠️ BOT_TOKEN kamu sebaiknya ditambahkan via Railway Dashboard, bukan disini.
+[env]
+NODE_VERSION = "20"
