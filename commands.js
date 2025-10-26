@@ -10,15 +10,12 @@ async function handleAnalysis(chatId, args) {
 
     const form = new FormData();
     form.append("chat_id", chatId);
-    form.append(
-      "photo",
-      new Blob([imageBuffer], { type: "image/png" }),
-      `${symbol}.png`
-    );
+    form.append("photo", imageBuffer, { filename: `${symbol}.png` });
 
     await axios.post(`${TELEGRAM_API}/sendPhoto`, form, {
       headers: form.getHeaders(),
     });
+    console.log(`✅ Placeholder chart terkirim untuk ${symbol}`);
   } catch (err) {
     console.error("❌ Gagal kirim chart:", err.message);
     await axios.post(`${TELEGRAM_API}/sendMessage`, {
