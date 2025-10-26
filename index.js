@@ -1,7 +1,6 @@
 const express = require("express");
 const axios = require("axios");
 const { handleAnalysis } = require("./commands");
-const FormData = require("form-data");
 require("dotenv").config();
 
 if (!process.env.BOT_TOKEN) {
@@ -10,8 +9,8 @@ if (!process.env.BOT_TOKEN) {
 }
 
 const TELEGRAM_API = `https://api.telegram.org/bot${process.env.BOT_TOKEN}`;
-
 const app = express();
+
 app.use(express.json({ limit: "10mb" }));
 
 app.get("/", (req, res) => {

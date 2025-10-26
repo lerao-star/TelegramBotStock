@@ -1,31 +1,28 @@
 const puppeteer = require("puppeteer-core");
-const chromium = require("@sparticuz/chromium-min");
+const chromium = require("@sparticuz/chromium");
 const yahooFinance = require("yahoo-finance2").default;
 const technicalIndicators = require("technicalindicators");
 const path = require("path");
 
 async function generateCandlestickChart(symbol = "BBCA.JK") {
-  console.log(
-    "🚀 Meluncurkan browser dengan @sparticuz/chromium v141 di Railway..."
-  );
+  console.log("🚀 Meluncurkan browser Chromium v119 di Railway...");
 
   const browser = await puppeteer.launch({
     args: [
+      ...chromium.args,
       "--no-sandbox",
       "--disable-setuid-sandbox",
-      "--disable-dev-shm-usage",
-      "--disable-accelerated-2d-canvas",
       "--disable-gpu",
-      "--lang=en-US,en",
+      "--single-process",
+      "--no-zygote",
     ],
-    executablePath:
-      process.env.CHROMIUM_PATH || (await chromium.executablePath()),
-    headless: true,
+    executablePath: await chromium.executablePath(),
+    headless: chromium.headless,
     ignoreHTTPSErrors: true,
   });
 
   const page = await browser.newPage();
-  const filePath = path.resolve(__dirname, "public/chart.html");
+  const filePath = path.resolve(__dirname, "../public/chart.html");
 
   try {
     await page.goto(`file://${filePath}`, { waitUntil: "networkidle2" });
@@ -49,9 +46,8 @@ async function generateCandlestickChart(symbol = "BBCA.JK") {
       .filter((d) => d.close !== null);
 
     const closes = ohlc.map((d) => d.close);
-    const volumes = ohlc.map((d) => d.volume);
 
-    // Indikator teknikal
+    // Moving averages
     const ma5 = technicalIndicators.SMA.calculate({
       period: 5,
       values: closes,
@@ -61,7 +57,7 @@ async function generateCandlestickChart(symbol = "BBCA.JK") {
       values: closes,
     });
 
-    // Deteksi golden/dead cross
+    // Golden / Dead Cross detection
     const crosses = [];
     for (let i = 1; i < ma5.length; i++) {
       if (ma5[i - 1] < ma20[i - 1] && ma5[i] > ma20[i]) {
@@ -71,23 +67,24 @@ async function generateCandlestickChart(symbol = "BBCA.JK") {
       }
     }
 
-    // Support / resistance
+    // Support & resistance
     const max = Math.max(...closes);
     const min = Math.min(...closes);
     const range = max - min;
-    const sr = {
+    const supportResistance = {
       R1: max - range * 0.25,
       R2: max - range * 0.5,
       S1: min + range * 0.25,
       S2: min + range * 0.5,
     };
 
+    // Kirim data ke chart.html
     await page.evaluate(
       (data) => {
         window.chartData = data;
         window.renderChart?.();
       },
-      { symbol: quote.symbol, ohlc, ma5, ma20, crosses, supportResistance: sr }
+      { symbol: quote.symbol, ohlc, ma5, ma20, crosses, supportResistance }
     );
 
     await page.waitForTimeout(2500);
@@ -95,7 +92,7 @@ async function generateCandlestickChart(symbol = "BBCA.JK") {
     await browser.close();
     return screenshot;
   } catch (err) {
-    console.error("❌ Error di generateCandlestickChart:", err);
+    console.error("❌ Error generate chart:", err);
     await browser.close();
     throw err;
   }

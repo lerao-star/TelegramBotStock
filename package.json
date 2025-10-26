@@ -1,20 +1,21 @@
 {
   "name": "telegrambotstock",
   "version": "1.0.0",
-  "description": "Telegram bot with real candlestick chart using lightweight-charts + Puppeteer",
+  "description": "Telegram bot with real candlestick chart using lightweight-charts + Puppeteer (Railway Ready)",
   "main": "index.js",
   "scripts": {
-  "start": "apt-get update && apt-get install -y libnss3 libatk-bridge2.0-0 libxcomposite1 libxdamage1 libxrandr2 libgbm1 libgtk-3-0 libasound2 libxshmfence1 fonts-liberation libdrm2 xdg-utils && node index.js"
+    "postinstall": "npx @sparticuz/chromium --download",
+    "start": "apt-get update && apt-get install -y libnss3 libatk-bridge2.0-0 libxcomposite1 libxdamage1 libxrandr2 libgbm1 libgtk-3-0 libasound2 libxshmfence1 fonts-liberation libdrm2 xdg-utils && node index.js"
   },
   "dependencies": {
-    "@sparticuz/chromium-min": "^141.0.0",
-    "axios": "^1.12.2",
-    "dotenv": "^17.2.3",
-    "express": "^4.21.2",
-    "form-data": "^4.0.4",
-    "puppeteer-core": "^24.26.1",
-    "technicalindicators": "^1.1.13",
-    "yahoo-finance2": "^3.10.0"
+    "@sparticuz/chromium": "119.0.0",
+    "axios": "^1.6.8",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "form-data": "^4.0.0",
+    "puppeteer-core": "^23.6.0",
+    "technicalindicators": "^3.0.0",
+    "yahoo-finance2": "^2.14.0"
   },
   "engines": {
     "node": ">=18"
