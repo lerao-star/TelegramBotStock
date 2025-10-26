@@ -4,40 +4,26 @@ const { generateCandlestickChart } = require("./services/chartAnalisa");
 const TELEGRAM_API = `https://api.telegram.org/bot${process.env.BOT_TOKEN}`;
 
 async function handleAnalysis(chatId, args) {
-  if (!symbol) {
-    await axios.post(`${TELEGRAM_API}/sendMessage`, {
-      chat_id: chatId,
-      text: "⚠️ Format salah!\nGunakan: /analisa [kode_saham]\nContoh: /analisa BBCA.JK",
-    });
-    return;
-  }
-
+  const symbol = args || "BBCA.JK";
   try {
-    await axios.post(`${TELEGRAM_API}/sendMessage`, {
-      chat_id: chatId,
-      text: `📊 Menganalisis saham *${symbol}*... tunggu sebentar.`,
-      parse_mode: "Markdown",
-    });
-
     const imageBuffer = await generateCandlestickChart(symbol);
 
-    const formData = new FormData();
-    formData.append("chat_id", chatId);
-    formData.append("photo", imageBuffer, {
-      filename: `${symbol}.png`,
-      contentType: "image/png",
-    });
+    const form = new FormData();
+    form.append("chat_id", chatId);
+    form.append(
+      "photo",
+      new Blob([imageBuffer], { type: "image/png" }),
+      `${symbol}.png`
+    );
 
-    await axios.post(`${TELEGRAM_API}/sendPhoto`, formData, {
-      headers: formData.getHeaders(),
+    await axios.post(`${TELEGRAM_API}/sendPhoto`, form, {
+      headers: form.getHeaders(),
     });
-
-    console.log(`✅ Chart ${symbol} terkirim ke Telegram`);
   } catch (err) {
-    console.error("❌ Gagal generate chart:", err);
+    console.error("❌ Gagal kirim chart:", err.message);
     await axios.post(`${TELEGRAM_API}/sendMessage`, {
       chat_id: chatId,
-      text: `❌ Gagal menganalisa ${symbol}.`,
+      text: `⚠️ Gagal membuat chart untuk ${symbol}. Coba lagi nanti.`,
     });
   }
 }

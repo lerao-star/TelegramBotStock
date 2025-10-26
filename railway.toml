@@ -1,8 +1,0 @@
-[build]
-command = "npm install && npx @sparticuz/chromium --download"
-
-[deploy]
-startCommand = "npm start"
-
-[env]
-NODE_VERSION = "20"
