@@ -1,26 +1,14 @@
 {
-  "name": "indo-stock-bot",
+  "name": "stock-chart-api",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
-    "start": "node index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node server.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "module",
   "dependencies": {
-    "dotenv": "^16.3.1",
-    "axios": "^1.12.2",
-    "chartjs-node-canvas": "^5.0.0",
-    "cheerio": "^1.1.2",
-    "cloudscraper": "^4.6.0",
-    "lightweight-charts": "^5.0.9",
-    "minimist": "^1.2.8",
-    "node-telegram-bot-api": "^0.66.0",
-    "puppeteer": "^24.23.0",
-    "xml2js": "^0.6.2"
+    "express": "^4.18.2",
+    "yahoo-finance2": "^2.13.0",
+    "chartjs-node-canvas": "^4.1.6",
+    "chart.js": "^4.4.0"
   }
 }

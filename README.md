@@ -1,2 +1,0 @@
-# indo-stock-bot
-
