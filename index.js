@@ -1,5 +1,6 @@
 // index.js
 import dotenv from "dotenv";
+import express from "express";
 import TelegramBot from "node-telegram-bot-api";
 import { handleBEIAnnouncement } from "./Services/bei-announcement.js";
 import { handleNews } from "./Services/news.js";
@@ -13,7 +14,53 @@ import { handleChartBrokerSummaryImage } from "./Commands/ChartBroksum/Index.js"
 
 dotenv.config();
 
-const bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, { polling: true });
+const TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+if (!TOKEN) {
+  console.error("TELEGRAM_BOT_TOKEN is not set in environment");
+  process.exit(1);
+}
+
+// Decide mode: webhook when WEBHOOK_URL is set, otherwise polling
+const WEBHOOK_URL = process.env.WEBHOOK_URL;
+let bot;
+if (WEBHOOK_URL) {
+  bot = new TelegramBot(TOKEN, { polling: false });
+
+  const app = express();
+  app.use(express.json());
+
+  app.post("/webhook", (req, res) => {
+    try {
+      bot.processUpdate(req.body);
+      res.sendStatus(200);
+    } catch (err) {
+      console.error("Failed to process update:", err);
+      res.sendStatus(500);
+    }
+  });
+
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () =>
+    console.log(`Webhook server listening on port ${PORT}`)
+  );
+
+  // register webhook with Telegram (best-effort)
+  (async () => {
+    try {
+      await bot.setWebHook(WEBHOOK_URL);
+      console.log("Webhook set to", WEBHOOK_URL);
+    } catch (err) {
+      console.error("Failed to set webhook:", err?.message || err);
+    }
+  })();
+} else {
+  bot = new TelegramBot(TOKEN, { polling: true });
+}
+
+// log polling errors
+bot.on("polling_error", (err) => {
+  console.error("Polling error", err?.message || err);
+});
 
 function createProgressUpdater(bot, chatId) {
   let messageId = null;
