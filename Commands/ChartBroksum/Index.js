@@ -1,5 +1,5 @@
-import { getDateRange } from "../../shared/utils/data-helpers.js";
-import { fetchBrokerChartData } from "../../shared/services/chart_broksum.js";
+import { getDateRange } from "../../shared/Utils/data-helpers.js";
+import { fetchBrokerChartData } from "../../shared/Services/chart_broksum.js";
 import {
   calculateBrokerTotals,
   prepareChartDataForVisualization,
