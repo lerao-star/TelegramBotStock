@@ -46,8 +46,16 @@ WORKDIR /usr/src/app
 # Copy package manifests and install dependencies
 COPY package*.json ./
 
-# Install production dependencies
-RUN npm ci --only=production
+# Install production dependencies.
+# Use `npm ci` when a lockfile is present (deterministic). Some repos
+# don't include package-lock.json; `npm ci` would fail in that case.
+# Fall back to `npm install --omit=dev` when no lockfile exists so the
+# Docker build doesn't fail with "npm ci requires a package-lock.json".
+RUN if [ -f package-lock.json ]; then \
+      npm ci --only=production; \
+    else \
+      npm install --omit=dev --no-audit --no-fund --production; \
+    fi
 
 # Copy source
 COPY . .
