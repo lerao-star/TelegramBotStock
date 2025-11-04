@@ -1,4 +1,4 @@
-import { formatNumber } from "../../Shared/Utils/data-helpers.js";
+import { formatNumber } from "../../shared/utils/data-helpers.js";
 
 function formatSignedNumber(num) {
   if (num === 0) return "0";
