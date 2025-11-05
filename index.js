@@ -20,42 +20,56 @@ if (!TOKEN) {
   process.exit(1);
 }
 
-// Decide mode: webhook when WEBHOOK_URL is set, otherwise polling
-const WEBHOOK_URL = process.env.WEBHOOK_URL;
-let bot;
-if (WEBHOOK_URL) {
-  bot = new TelegramBot(TOKEN, { polling: false });
+const app = express();
+app.use(express.json());
 
-  const app = express();
-  app.use(express.json());
+const PORT = process.env.PORT || 3000;
+const DOMAIN = process.env.DOMAIN || 'maybot.zeabur.app';
 
-  app.post("/webhook", (req, res) => {
-    try {
-      bot.processUpdate(req.body);
-      res.sendStatus(200);
-    } catch (err) {
-      console.error("Failed to process update:", err);
-      res.sendStatus(500);
-    }
-  });
+// Inisialisasi bot tanpa webhook terlebih dahulu
+const bot = new TelegramBot(TOKEN);
 
-  const PORT = process.env.PORT || 3000;
-  app.listen(PORT, () =>
-    console.log(`Webhook server listening on port ${PORT}`)
-  );
+// Health check endpoint untuk Zeabur
+app.get('/', (req, res) => {
+  res.send('Bot is running!');
+});
 
-  // register webhook with Telegram (best-effort)
-  (async () => {
-    try {
-      await bot.setWebHook(WEBHOOK_URL);
-      console.log("Webhook set to", WEBHOOK_URL);
-    } catch (err) {
-      console.error("Failed to set webhook:", err?.message || err);
-    }
-  })();
-} else {
-  bot = new TelegramBot(TOKEN, { polling: true });
-}
+// Set up express route untuk webhook
+app.post('/webhook', (req, res) => {
+  try {
+    bot.processUpdate(req.body);
+    res.sendStatus(200);
+  } catch (err) {
+    console.error("Failed to process update:", err);
+    res.sendStatus(500);
+  }
+});
+
+// Start server dan setup webhook
+app.listen(PORT, '0.0.0.0', async () => {
+  try {
+    // Tunggu sebentar untuk memastikan server sudah siap
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    // Hapus webhook yang mungkin ada sebelumnya
+    await bot.deleteWebHook();
+    
+    // Setup webhook baru menggunakan domain dari Zeabur
+    const webhookUrl = `https://${DOMAIN}/webhook`;
+    
+    await bot.setWebHook(webhookUrl, {
+      max_connections: 40,
+      drop_pending_updates: true
+    });
+    
+    console.log(`✅ Server berjalan di port ${PORT}`);
+    console.log(`✅ Webhook diset ke ${webhookUrl}`);
+  } catch (err) {
+    console.error("❌ Gagal mengatur webhook:", err?.message || err);
+    // Jangan exit process di production
+    console.error("Bot akan tetap berjalan tanpa webhook");
+  }
+});
 
 // log polling errors
 bot.on("polling_error", (err) => {
