@@ -1,6 +1,7 @@
 // index.js
 import dotenv from "dotenv";
 import express from "express";
+import axios from "axios";
 import TelegramBot from "node-telegram-bot-api";
 import { handleBEIAnnouncement } from "./Services/bei-announcement.js";
 import { handleNews } from "./Services/news.js";
@@ -24,18 +25,18 @@ const app = express();
 app.use(express.json());
 
 const PORT = process.env.PORT || 3000;
-const DOMAIN = process.env.DOMAIN || 'maybot.zeabur.app';
+const DOMAIN = process.env.DOMAIN || "maybot.zeabur.app";
 
 // Inisialisasi bot tanpa webhook terlebih dahulu
 const bot = new TelegramBot(TOKEN);
 
 // Health check endpoint untuk Zeabur
-app.get('/', (req, res) => {
-  res.send('Bot is running!');
+app.get("/", (req, res) => {
+  res.send("Bot is running!");
 });
 
 // Set up express route untuk webhook
-app.post('/webhook', (req, res) => {
+app.post("/webhook", (req, res) => {
   try {
     bot.processUpdate(req.body);
     res.sendStatus(200);
@@ -46,22 +47,22 @@ app.post('/webhook', (req, res) => {
 });
 
 // Start server dan setup webhook
-app.listen(PORT, '0.0.0.0', async () => {
+app.listen(PORT, "0.0.0.0", async () => {
   try {
     // Tunggu sebentar untuk memastikan server sudah siap
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+
     // Hapus webhook yang mungkin ada sebelumnya
     await bot.deleteWebHook();
-    
+
     // Setup webhook baru menggunakan domain dari Zeabur
     const webhookUrl = `https://${DOMAIN}/webhook`;
-    
+
     await bot.setWebHook(webhookUrl, {
       max_connections: 40,
-      drop_pending_updates: true
+      drop_pending_updates: true,
     });
-    
+
     console.log(`✅ Server berjalan di port ${PORT}`);
     console.log(`✅ Webhook diset ke ${webhookUrl}`);
   } catch (err) {
@@ -349,6 +350,44 @@ const validCommands = [
 
 // Handler fallback: perintah tidak dikenal
 bot.on("message", (msg) => {
+  // Forward incoming text messages to n8n if configured. The payload
+  // matches the shape your n8n Function expects: { message: { from, text } }.
+  (async () => {
+    try {
+      const n8nUrl = process.env.N8N_WEBHOOK_URL;
+      if (n8nUrl && msg?.text) {
+        const payload = {
+          message: {
+            from: {
+              id: msg.from?.id,
+              first_name: msg.from?.first_name,
+              username: msg.from?.username,
+            },
+            text: msg.text,
+          },
+        };
+
+        const headers = { "Content-Type": "application/json" };
+        // Prefer the explicit API key header if provided, otherwise fall back
+        // to the older N8N_WEBHOOK_SECRET header name for compatibility.
+        if (process.env.N8N_API_KEY) {
+          headers["X-API-KEY"] = process.env.N8N_API_KEY;
+        } else if (process.env.N8N_WEBHOOK_SECRET) {
+          headers["X-N8N-SECRET"] = process.env.N8N_WEBHOOK_SECRET;
+        }
+
+        // fire-and-forget; log errors but don't block message handling
+        axios.post(n8nUrl, payload, { headers }).catch((err) => {
+          console.warn(
+            "Failed to forward message to n8n:",
+            err?.message || err
+          );
+        });
+      }
+    } catch (e) {
+      console.warn("n8n forwarder error:", e?.message || e);
+    }
+  })();
   const text = msg.text?.trim();
 
   // Cek jika pesan adalah command (diawali '/')
